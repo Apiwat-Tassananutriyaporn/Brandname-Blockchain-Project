@@ -17,7 +17,7 @@ router.patch("/:id/sellasset", productController.sellAsset); // sell asset 1
 router.get("/trading", productController.trading); // get all assets for sale  2
 router.patch("/:id/buyasset", verifyToken, productController.buyAsset);//buy asset 3
 
-//verify product
+router.get("/:serial/verify", productController.verify);//buy asset 3//verify product
 
 
 

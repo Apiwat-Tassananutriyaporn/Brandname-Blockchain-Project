@@ -272,5 +272,26 @@ exports.buyAsset = async (req, res) => {
 };
 
 
+exports.verify = async (req, res) => {
+    
+    const serial = req.params.serial 
+
+    try{
+        const product = await req.db.query("SELECT * FROM product WHERE serial = ? ", serial)
+
+        res.json({
+            message: "SELECT complete!",
+            data: product[0]
+        })
+
+    }catch(error){
+        console.log("can not get product")
+        res.status(500).json({
+            message: "something wrong",
+            error
+        })
+    }
+
+};
 
 
