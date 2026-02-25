@@ -42,8 +42,11 @@ exports.login = async (req, res) =>{
                     message: "Password is not correct!"
                 });
             }
+            userRole = result[0][0].role
+            console.log("userRole: ", userRole)    
+            
 
-            const token =  jwt.sign({email, role: "user"},  process.env.JWT_SECRET, { expiresIn: '1h'})
+            const token =  jwt.sign({email, role: userRole},  process.env.JWT_SECRET, { expiresIn: '1h'})
 
             res.json({
                 message : "Login succesful!",

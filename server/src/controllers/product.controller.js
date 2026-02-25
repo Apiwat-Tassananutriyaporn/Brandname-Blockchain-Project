@@ -83,18 +83,106 @@ exports.getAllProducts = async (req, res) => {
 };
 
 
+exports.getMyCollection = async (req, res) => {
+
+    try{
+        
+        const user_token = req.user
+        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
+
+        console.log("user_token.email: ", user_token.email)
+
+        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
+        const user_id = user[0][0].id
+
+        console.log("user_id: ", user_id)
+
+        const product = await req.db.query("SELECT * FROM product WHERE current_owner_id = ? AND status = 'With Owner' AND type = 'Real'", user_id)
+        console.log("product: ", product[0])
+
+        res.json({
+            message: "SELECT complete!",
+            data: product[0]
+        })
+
+    }catch(error){
+        console.log("can not get asset")
+        res.status(403).json({
+            message: "authentication fail",
+            error
+        })
+    }
+
+};
+
+exports.buyCollection = async (req, res) => {
+
+    const id = req.params.id
+    try{
+        
+
+        const user_token = req.user
+        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
+        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
+        
+        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user[0][0].id, id])
+
+        res.json({
+            message: "Buy Product complete!",
+            result
+        })
+
+    }catch(error){
+        console.log("can not get asset")
+        res.status(403).json({
+            message: "authentication fail",
+            error
+        })
+    }
+};
+
+
+exports.sellCollection = async (req, res) => {
+    let id = req.params.id
+    try{
+        const result = await req.db.query("UPDATE product SET status = 'Sold' WHERE id = ?", id)
+        res.json({
+            message: "Sell Collection complete!"
+        })
+    }catch(error){
+        console.log("errorMessage: ",error.message)
+
+        res.status(500).json({
+            message: "something wrong",
+        })
+    }
+};
+
+
+exports.market = async (req, res) => {
+    try{
+        const product = await req.db.query("SELECT * FROM product WHERE status = 'Sold' AND type = 'Real'")
+
+        res.json({
+            message: "SELECT complete!",
+            data: product[0]
+        })
+
+    }catch(error){
+        console.log("can not get asset")
+        res.status(403).json({
+            message: "authentication fail",
+            error
+        })
+    }
+};
+
+
 exports.getMyAsset = async (req, res) => {
 
     try{
-        const authHeader = req.headers['authorization']
-        let authToken = ''
-        if(authHeader){
-            authToken = authHeader.split(' ')[1]
-        }
-        console.log("authHeader: ", authHeader)
-        console.log("authToken: ", authToken)
-
-        const user_token = jwt.verify(authToken, process.env.JWT_SECRET)
+        
+        const user_token = req.user
         console.log("user_token: ", user_token) // ใช้ user_token.emailได้
 
         console.log("user_token.email: ", user_token.email)
@@ -157,24 +245,17 @@ exports.trading = async (req, res) => {
     }
 };
 
-
-exports.buyproduct = async (req, res) => {
+exports.buyAsset = async (req, res) => {
 
     const id = req.params.id
     try{
-        const authHeader = req.headers['authorization']
-        let authToken = '' 
-        if(authHeader){
-            authToken = authHeader.split(' ')[1]
-        }
-        console.log("authHeader: ", authHeader)
-        console.log("authToken: ", authToken)
+        
 
-        const user_token = jwt.verify(authToken, process.env.JWT_SECRET )
+        const user_token = req.user
         console.log("user_token: ", user_token) // ใช้ user_token.emailได้
         const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
         
-        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ?", [user[0][0].id, id])
+        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user[0][0].id, id])
 
         res.json({
             message: "Buy Product complete!",
@@ -189,6 +270,7 @@ exports.buyproduct = async (req, res) => {
         })
     }
 };
+
 
 
 
