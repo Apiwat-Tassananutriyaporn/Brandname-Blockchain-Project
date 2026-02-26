@@ -3,15 +3,18 @@ const jwt = require("jsonwebtoken");
 
 
 
+
 exports.registerProductToUser = async (req, res) => {
     const{serial, email} = req.body
     
     try{
         console.log("email: ", email)
          const [user] = await req.db.query("SELECT * FROM user WHERE email = ?", email)
+         console.log("user: ", user)
         if(!user){
             throw new ("email is not found")
         }
+        console.log("user: ", user[0])
         const result = await req.db.query("UPDATE product SET status = 'With Owner', current_owner_id  = ? WHERE serial = ?", [user[0].id, serial])
         res.json({
             message: "resgister product succesful!"
@@ -88,11 +91,11 @@ exports.getMyCollection = async (req, res) => {
     try{
         
         const user_token = req.user
-        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
+        console.log("user_token: ", user_token) // ใช้ user_token.idได้
 
-        console.log("user_token.email: ", user_token.email)
+        console.log("user_token.id: ", user_token.id)
 
-        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
+        const user = await req.db.query("SELECT * FROM user WHERE id = ?", user_token.id)
         const user_id = user[0][0].id
 
         console.log("user_id: ", user_id)
@@ -119,13 +122,10 @@ exports.buyCollection = async (req, res) => {
 
     const id = req.params.id
     try{
-        
-
         const user_token = req.user
-        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
-        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
+        console.log("user_token: ", user_token) // ใช้ user_token.idได้
         
-        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user[0][0].id, id])
+        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user_token.id, id])
 
         res.json({
             message: "Buy Product complete!",
@@ -145,7 +145,7 @@ exports.buyCollection = async (req, res) => {
 exports.sellCollection = async (req, res) => {
     let id = req.params.id
     try{
-        const result = await req.db.query("UPDATE product SET status = 'Sold' WHERE id = ?", id)
+        const result = await req.db.query("UPDATE product SET status = 'Sold' WHERE id = ? AND current_owner_id =  ", id)
         res.json({
             message: "Sell Collection complete!"
         })
@@ -183,13 +183,9 @@ exports.getMyAsset = async (req, res) => {
     try{
         
         const user_token = req.user
-        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
+        console.log("user_token: ", user_token) // ใช้ user_token.idได้
 
-        console.log("user_token.email: ", user_token.email)
-
-        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
-        const user_id = user[0][0].id
-
+        const user_id = user_token.id
         console.log("user_id: ", user_id)
 
         const product = await req.db.query("SELECT * FROM product WHERE current_owner_id = ? AND status = 'With Owner' AND type = 'Asset'", user_id)
@@ -214,7 +210,9 @@ exports.getMyAsset = async (req, res) => {
 exports.sellAsset = async (req, res) => {
     let id = req.params.id
     try{
-        const result = await req.db.query("UPDATE product SET status = 'Sold' WHERE id = ?", id)
+        user_token = req.user
+        
+        const result = await req.db.query("UPDATE product SET status = 'Sold' WHERE id = ? AND current_owner_id = ?", [id, user_token.id])
         res.json({
             message: "Sell Asset complete!"
         })
@@ -249,13 +247,10 @@ exports.buyAsset = async (req, res) => {
 
     const id = req.params.id
     try{
-        
-
         const user_token = req.user
-        console.log("user_token: ", user_token) // ใช้ user_token.emailได้
-        const user = await req.db.query("SELECT * FROM user WHERE email = ?", user_token.email)
+        console.log("user_token: ", user_token) // ใช้ user_token.idได้
         
-        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user[0][0].id, id])
+        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user_token.id, id])
 
         res.json({
             message: "Buy Product complete!",
