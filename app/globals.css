@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* บังคับพื้นหลังขาวและตัวอักษรดำสำหรับธีมใหม่ */
+:root {
+  background-color: white;
+  color: black;
+}
+
+body {
+  background-color: white;
+  color: black;
+}
