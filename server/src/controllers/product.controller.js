@@ -125,7 +125,8 @@ exports.buyCollection = async (req, res) => {
         const user_token = req.user
         console.log("user_token: ", user_token) // ใช้ user_token.idได้
         
-        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user_token.id, id])
+        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Real'", [user_token.id, id])
+
 
         res.json({
             message: "Buy Product complete!",
@@ -249,8 +250,14 @@ exports.buyAsset = async (req, res) => {
     try{
         const user_token = req.user
         console.log("user_token: ", user_token) // ใช้ user_token.idได้
+
+        const product = await req.db.query("SELECT * FROM product WHERE id = ? AND type='Asset'", id)
+        const oldOwnerId = product[0][0].current_owner_id
+        console.log("oldOwnerId: ", oldOwnerId)
         
         const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user_token.id, id])
+
+        // const history = await req.db.query("INSERT INTO `ownership_history`(`product_id`, `from_user_id`, `to_user_id`) VALUES (?, ?, ?, ?)", [id, oldOwnerId, user_token.id])
 
         res.json({
             message: "Buy Product complete!",

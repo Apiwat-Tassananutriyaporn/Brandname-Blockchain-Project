@@ -10,7 +10,7 @@ router.get("/get",verifyToken, authorizeRoles("admin"), productController.getAll
 
 router.get("/collection",verifyToken, authorizeRoles("user"), productController.getMyCollection); //get my product 
 router.patch("/:id/sellcollection",verifyToken, authorizeRoles("user"), productController.sellCollection); //sell product 
-router.get("/market", productController.market);// get all products for sale 2
+router.get("/market", productController.market);// get all products for sale 
 router.patch("/:id/buycollection", verifyToken, authorizeRoles("user"), productController.buyCollection); // buy product 
 
 router.get("/asset", verifyToken, authorizeRoles("user"), productController.getMyAsset); //get my asset  

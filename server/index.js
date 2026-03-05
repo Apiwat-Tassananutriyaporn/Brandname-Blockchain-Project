@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: ["http://localhost:8000"],
+    origin: ["http://localhost:3000"],
   }),
 );
 
@@ -31,5 +31,5 @@ app.use("/api/product", productRoutes);
 
 app.listen(port, async (req,res) => {
   conn =await initMySQL() // เรียกจาก db.js
-  console.log(`http server run at : http://localhost:${port} `)
+  console.log(`http server run at : http://localhost:${port}`)
 })
