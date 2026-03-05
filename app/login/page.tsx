@@ -1,18 +1,57 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [formData, setFormData] = useState({
+      email: '',
+      password: ''
+    });
 
   // ฟังก์ชันสำหรับจัดการเมื่อกดปุ่ม Login
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // ป้องกันหน้าเว็บ Refresh
+    setError(''); // ล้างค่า Error เก่า
     
-    // ในอนาคตคุณสามารถเพิ่ม Logic การตรวจสอบสิทธิ์ (Authentication) ตรงนี้ได้
-    // ตอนนี้ให้กดแล้วไปหน้า Admin ทันที
-    router.push('Allpage/Admin'); 
+    try {
+      // 3. ยิง API ไปที่ Backend (ปรับ URL ให้ตรงกับของคุณ)
+       const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 4. ถ้าสำเร็จ: เก็บ Token และย้ายหน้า
+        localStorage.setItem('token', data.token); // เก็บ Token ไว้ในเครื่อง
+        alert("Login Successful!");
+        router.push('/Allpage/Admin'); 
+      } else {
+        // 5. ถ้าไม่สำเร็จ: แสดงข้อความ Error จาก Backend
+        setError(data.message || "Something went wrong");
+      }
+    } catch (err) {
+      setError("Cannot connect to server. Please try again later.");
+    }
+
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value
+      }));
+    };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -29,10 +68,12 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 ml-1">Email</label>
             <input
+              name="email"
               type="email"
               required
               placeholder="Enter your email"
               className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-[#E2AD28] focus:border-transparent outline-none transition-all text-black placeholder:text-gray-300 shadow-sm"
+              onChange={handleChange}
             />
           </div>
 
@@ -40,10 +81,12 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 ml-1">Password</label>
             <input
+              name="password"
               type="password"
               required
               placeholder="••••••••"
               className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-[#E2AD28] focus:border-transparent outline-none transition-all text-black placeholder:text-gray-300 shadow-sm"
+              onChange={handleChange}
             />
           </div>
           
