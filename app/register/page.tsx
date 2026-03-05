@@ -23,13 +23,14 @@ export default function RegisterPage() {
     try {
       // เรียกไปที่ Route: router.post("/register", authController.register);
       // สมมติว่า Backend รันอยู่ที่พอร์ต 5000 และใช้ prefix /api/auth
-      const response = await fetch('http://localhost:3306/api/auth/register', {
+      const response = await fetch('http://localhost:8000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name,
+          firstname: formData.firstname,
+          lastname: formData.lastname,
           email: formData.email,
           password: formData.password,
           phone: formData.phoneNumber, 
@@ -77,12 +78,24 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 ml-1">Full Name</label>
+            <label className="block text-sm font-medium text-gray-700 ml-1">First Name</label>
             <input
-              name="name"
+              name="firstname"
               type="text"
               required
-              placeholder="Enter your full name"
+              placeholder="Enter your first name"
+              className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-[#E2AD28] outline-none text-black transition-all shadow-sm"
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 ml-1">Last Name</label>
+            <input
+              name="lastname"
+              type="text"
+              required
+              placeholder="Enter your last name"
               className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-[#E2AD28] outline-none text-black transition-all shadow-sm"
               onChange={handleChange}
             />
