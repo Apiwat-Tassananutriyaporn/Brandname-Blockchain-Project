@@ -14,11 +14,14 @@ export default function MarketPage() {
   // 3. ฟังก์ชันดึงข้อมูล API
   const fetchTradingData = async () => {
     try {
+      const token = localStorage.getItem('token');
+      
       setLoading(true);
       const response = await fetch('http://localhost:8000/api/product/trading', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
       
@@ -26,7 +29,7 @@ export default function MarketPage() {
       
       const data = await response.json();
       setProducts(data.data || []); // เก็บข้อมูลที่ได้จาก API ลงใน State
-      console.log("products:", products); // แสดงข้อมูลที่ได้จาก API ใน Console
+      
     } catch (error) {
       console.error("Failed to fetch:", error);
     } finally {
@@ -99,7 +102,6 @@ export default function MarketPage() {
       extra: null
     }
   ];
-  console.log("marketItems :", marketItems); // แสดงข้อมูลที่จะแสดงในตารางใน Console
 
   return (
     <div className="min-h-screen bg-[#FBFBFB] p-8 text-black">

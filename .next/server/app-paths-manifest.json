@@ -1,9 +1,0 @@
-{
-  "/Allpage/Admin/page": "app/Allpage/Admin/page.js",
-  "/Allpage/MyCollection/page": "app/Allpage/MyCollection/page.js",
-  "/Allpage/Escrow/page": "app/Allpage/Escrow/page.js",
-  "/Allpage/Trading/page": "app/Allpage/Trading/page.js",
-  "/Allpage/Market/page": "app/Allpage/Market/page.js",
-  "/Allpage/Asset/page": "app/Allpage/Asset/page.js",
-  "/Allpage/Verify/page": "app/Allpage/Verify/page.js"
-}
