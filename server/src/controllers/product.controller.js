@@ -228,7 +228,7 @@ exports.sellAsset = async (req, res) => {
 
 exports.trading = async (req, res) => {
     try{
-        const product = await req.db.query("SELECT * FROM product WHERE status = 'Sold' AND type = 'Asset'")
+        const product = await req.db.query("SELECT product.*, COALESCE(user.firstname, 'Manufacturer') AS owner_name FROM product LEFT JOIN user ON product.current_owner_id = user.id WHERE status IN ('Sold', 'In Custody') AND type = 'Asset'")
 
         res.json({
             message: "SELECT complete!",
