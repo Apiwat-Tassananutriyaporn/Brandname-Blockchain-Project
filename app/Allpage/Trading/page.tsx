@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react'; 
 import { TrendingUp, TrendingDown, DollarSign, Loader2 } from 'lucide-react';
+import { jwtDecode } from "jwt-decode";
 
 export default function MarketPage() {
   // 2. สร้าง State สำหรับเก็บข้อมูล API (ค่าเริ่มต้นเป็นอาร์เรย์ว่าง)
@@ -42,66 +43,6 @@ export default function MarketPage() {
     fetchTradingData();
   }, []); // [] หมายถึงทำแค่ครั้งเดียวตอนโหลดหน้า
 
-
-
-  // ข้อมูลจำลองสำหรับ Trading Floor
-  const marketItems = [
-    {
-      symbol: "HRM.B35",
-      brand: "Hermès",
-      model: "Birkin 35 · Gold Togo",
-      owner: "Hermès Manufacture",
-      ownerType: "Manufacturer",
-      price: "15,200",
-      change: "+2.7%",
-      isPositive: true,
-      extra: "+$150"
-    },
-    {
-      symbol: "LV.NVF",
-      brand: "Louis Vuitton",
-      model: "Neverfull MM · Monogram Canvas",
-      owner: "Somsak Luxury",
-      ownerType: "Holder",
-      price: "2,850",
-      change: "+5.6%",
-      isPositive: true,
-      extra: null
-    },
-    {
-      symbol: "CHN.CF",
-      brand: "Chanel",
-      model: "Classic Flap Medium · Black Caviar",
-      owner: "Natcha Collection",
-      ownerType: "Holder",
-      price: "10,800",
-      change: "-3.6%",
-      isPositive: false,
-      extra: null
-    },
-    {
-      symbol: "HRM.K28",
-      brand: "Hermès",
-      model: "Kelly 28 · Etoupe Epsom",
-      owner: "Hermès Manufacture",
-      ownerType: "Manufacturer",
-      price: "22,500",
-      change: "+7.1%",
-      isPositive: true,
-      extra: "+$200"
-    },
-    {
-      symbol: "GCC.DIO",
-      brand: "Gucci",
-      model: "Dionysus Small · Beige/Ebony GG",
-      owner: "Premium Resellers BKK",
-      ownerType: "Holder",
-      price: "3,450",
-      change: "+7.8%",
-      isPositive: true,
-      extra: null
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-[#FBFBFB] p-8 text-black">
