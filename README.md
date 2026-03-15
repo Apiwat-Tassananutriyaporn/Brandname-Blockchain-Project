@@ -6,21 +6,6 @@ npm install @openzeppelin/contracts@4.9.0
 truffle compile เเล้วก้พิมอันนี้ต่อ truffle migrate --reset
 
 
-
-## รายละเอียดฟังก์ชันใน Smart Contract
-
-| ฟังก์ชัน | Input ที่ต้องส่งมา | สิ่งที่ Return ออกมา (Output) | การนำไปใช้ต่อ |
-| :--- | :--- | :--- | :--- |
-| **mint** | `to (address)`, `serial (string)` | `uint256 (tokenId)` | ให้ Back-end เอาเลข ID นี้ไปเก็บลง Database |
-| **getOwnerBySerial** | `serial (string)` | `address (owner)` | เอาไปเช็คว่าตรงกับคนดูไหม หรือโชว์ Wallet เจ้าของ |
-| **listProduct** | `tokenId`, `price` | None | เมื่อสำเร็จ สถานะสินค้าในสัญญาจะกลายเป็น Active |
-| **buy** | `tokenId` (+ ส่งเงิน ETH) | None | เงินจะถูกกักไว้ และบันทึก Address คนซื้อลงในระบบ |
-| **confirm** | `tokenId` | None | เปลี่ยนสถานะ confirmed เป็น True (Step 3) |
-| **swap** | `tokenId` | None | จบดีล: ของเข้ากระเป๋าผู้ซื้อ และเงินเข้ากระเป๋าผู้ขาย |
-| **tradingBuy** | `tokenId` (+ ส่งเงิน ETH) | None | จบในคำสั่งเดียว: ของและเงินสลับมือกันทันที |
-
----
-
 ## 💻 คำอธิบายสำหรับการพัฒนา (Front-end & Back-end)
 
 ### 1. หน้า Admin (ลงทะเบียนสินค้า)
