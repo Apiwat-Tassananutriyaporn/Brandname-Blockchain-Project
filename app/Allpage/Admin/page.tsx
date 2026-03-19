@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import {ethers} from 'ethers';
 
 interface Product {
   id: number;
@@ -14,17 +15,29 @@ interface Product {
   created_at: string;
 }
 
+
+// global.d.ts
+export {};
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('All');
+  
+  // ✅ เปลี่ยน filterStatus เป็น filterType
+  const [filterType, setFilterType] = useState('All');
 
   const [registerData, setRegisterData] = useState({ email: '', serialNumber: '' });
 
   const [newProduct, setNewProduct] = useState({
     serial: '',
-    Brand: 'Louis Vuitton',
+    brandName: 'Louis Vuitton',
     model: '',
     color: '',
     price: '',
@@ -64,20 +77,19 @@ export default function AdminPage() {
     fetchProducts();
   }, []);
 
-  // ✅ เชื่อมต่อ API Register Product กับ Backend
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8000/api/product/register', {
-        method: 'PATCH', // ใช้ PATCH ตามที่ระบุใน Router
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           email: registerData.email,
-          serial: registerData.serialNumber // ส่ง 'serial' ให้ตรงกับ Backend
+          serial: registerData.serialNumber
         })
       });
 
@@ -86,9 +98,8 @@ export default function AdminPage() {
       if (response.ok) {
         alert(`Success: ${result.message}`);
         setRegisterData({ email: '', serialNumber: '' });
-        fetchProducts(); // Refresh ตารางเพื่อดูสถานะใหม่
+        fetchProducts();
       } else {
-        // จัดการกรณี Error เช่น หา Email ไม่เจอ หรือ Serial ไม่ถูกต้อง
         alert(`Error: ${result.message || "Registration failed"}`);
       }
     } catch (error) {
@@ -97,39 +108,93 @@ export default function AdminPage() {
     }
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/product/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...newProduct,
-          price: Number(newProduct.price)
-        })
-      });
+    const handleAddProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!window.ethereum) {
+            return alert("กรุณาติดตั้ง Metamask");
+        }
 
-      if (response.ok) {
-        alert("Add Product Successful!!");
-        setIsModalOpen(false);
-        setNewProduct({ serial: '', Brand: 'Louis Vuitton', model: '', color: '', price: '', type: 'Real', status: 'In Custody' });
-        fetchProducts();
-      } else {
-        const err = await response.json();
-        alert(`Error: ${err.message}`);
-      }
-    } catch (error) {
-      alert("Failed to connect to server");
-    }
-  };
+        try {
+            setIsLoading(true);
 
+            // 1. เชื่อมต่อ Blockchain (Ethers v6 Style)
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            
+            // ใส่ Contract Address ที่คุณได้จากตอน Deploy ใน Ganache
+            const CONTRACT_ADDRESS = "0x13f0b470A6C745bD62092411C23912506Fde8610"; 
+            const ABI = [
+              "function mint(address to, string memory serial) external returns (uint256)",
+              "event Minted(uint256 indexed tokenId, address to, string serial)"
+            ];
+
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+            // 2. เรียก Mint ฟังก์ชัน
+            // ในที่นี้ส่งเลข Serial จาก State: newProduct.serial
+            const tx = await contract.mint(await signer.getAddress(), newProduct.serial);
+            
+            alert("กำลังขุดบล็อก (Processing Transaction...)");
+            // ✅ วิธีที่ถูกต้องใน ethers v6
+            const receipt = await tx.wait();
+
+            // ใช้ Interface ของ Contract มาช่วยหา Event
+            const event = receipt.logs
+              .map((log) => {
+                try {
+                  return contract.interface.parseLog(log);
+                } catch (e) {
+                  return null; // ข้าม log ที่ถอดรหัสไม่ได้
+                }
+              })
+              .find((parsedLog) => parsedLog && parsedLog.name === 'Minted');
+
+            let tokenIdFromBlockchain = null;
+            if (event) {
+                // 2. ดึง tokenId จาก args (ลำดับที่ 0 ตามใน Solidity)
+                tokenIdFromBlockchain = event.args[0].toString();
+                console.log("Success! Token ID:", tokenIdFromBlockchain);
+            } else {
+                console.warn("ไม่พบ Event 'Minted' ใน Transaction Receipt");
+            }
+            console.log("tokenid:", tokenIdFromBlockchain || "ไม่พบ Token ID ใน Log");
+
+            // 3. ส่งข้อมูลไป Backend (เมื่อบน Blockchain สำเร็จแล้ว)
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/product/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                ...newProduct,
+                price: Number(newProduct.price),
+                blockchain_status: "Minted",
+                wallet_address: await signer.getAddress(), // ส่งที่อยู่กระเป๋าไปด้วยเพื่อบันทึกใน Database
+                token_id: tokenIdFromBlockchain // ส่ง Token ID ที่ได้จากการ Mint ไปด้วย (ถ้ามี)
+            })
+            });
+
+            if (response.ok) {
+            alert("Mint NFT และเพิ่มข้อมูลลง Database สำเร็จ!");
+            setIsModalOpen(false);
+            fetchProducts();
+            }
+        } catch (error: any) {
+            console.error("Blockchain Error:", error);
+            alert(`เกิดข้อผิดพลาด: ${error.reason || error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+  // ✅ ปรับ Logic การ Filter: กรอง Status เป็น In Custody เสมอ และกรอง Type ตามที่เลือก
   const filteredProducts = products.filter(item => {
-    if (filterStatus === 'All') return true;
-    return item.status === filterStatus;
+    const isInCustody = item.status === 'In Custody';
+    const matchesType = filterType === 'All' || item.type === filterType;
+    return isInCustody && matchesType;
   });
 
   return (
@@ -173,24 +238,25 @@ export default function AdminPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-end gap-4 px-4">
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold">Custody Status</h2>
-              <p className="text-gray-400 text-xs">Real-time inventory of authenticated assets.</p>
+              <h2 className="text-2xl font-bold">In-Custody Inventory</h2>
+              <p className="text-gray-400 text-xs">Showing all items currently held in custody.</p>
             </div>
             
             <div className="flex gap-3 items-center">
               <button onClick={fetchProducts} className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 hover:text-black hover:border-gray-300 transition-all active:scale-95 shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`${isLoading ? 'animate-spin' : ''}`}
                 ><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>Refresh</button>
+              
+              {/* ✅ ปรับ Filter เป็นกรองตาม Type */}
               <div className="relative">
                 <select 
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
                   className="appearance-none bg-white border border-gray-100 text-gray-600 px-4 py-2.5 pr-10 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all outline-none cursor-pointer"
                 >
-                  <option value="All">All Status</option>
-                  <option value="In Custody">In Custody</option>
-                  <option value="With Owner">With Owner</option>
-                  <option value="Sold">Sold</option>
+                  <option value="All">All Types</option>
+                  <option value="Real">Real Product</option>
+                  <option value="Asset">Digital Asset</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
                   <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
@@ -208,14 +274,12 @@ export default function AdminPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="text-gray-400 uppercase text-[10px] tracking-widest font-black border-b border-gray-50">
+                    <tr className="text-gray-700  uppercase text-[12px] tracking-widest font-black border-b border-gray-50">
                       <th className="px-8 py-6">Serial</th>
                       <th className="px-8 py-6">Model</th>
                       <th className="px-8 py-6">Color</th>
-                      <th className="px-8 py-6">Current Owner</th>
+                      <th className="px-8 py-6 ">Price (THB)</th>
                       <th className="px-8 py-6">Type</th>
-                      <th className="px-8 py-6 text-right">Price (THB)</th>
-                      <th className="px-8 py-6 text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 text-sm">
@@ -224,21 +288,17 @@ export default function AdminPage() {
                         <td className="px-8 py-6 font-bold text-[#E2AD28] tracking-tighter">{item.serial}</td>
                         <td className="px-8 py-6 text-gray-800 font-semibold">{item.model}</td>
                         <td className="px-8 py-6 text-gray-500 italic">{item.color}</td>
-                        <td className="px-8 py-6 text-gray-400 font-mono text-xs">{item.current_owner_id ? `ID: ${item.current_owner_id}` : 'NULL (In Custody)'}</td>
-                        <td className="px-8 py-6"><span className={`text-[12px] px-2 py-1 rounded-md font-bold ${item.type === 'Asset' 
-                        ? 'bg-amber-50 text-amber-600 border-amber-100/50' 
-                        : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>{item.type}</span></td>
-                        <td className="px-8 py-6 text-right font-bold text-gray-700">{item.price?.toLocaleString()}</td>
-                        <td className="px-8 py-6 text-center">
-                          <span className={`inline-block px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                             item.status === 'In Custody' ? 'bg-amber-50 text-amber-600 border-amber-100/50'
-                            : item.status === 'With Owner' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50'
-                            : 'bg-gray-100 text-gray-500 border-gray-200'
-                          }`}>{item.status}</span>
+                        <td className="px-8 py-6 font-semibold text-gray-500">{item.price?.toLocaleString()}</td>
+                        <td className="px-8 py-6">
+                          <span className={`text-[12px] px-2 py-1 rounded-md font-bold ${item.type === 'Asset' 
+                          ? 'bg-gray-50 text-gray-500 border border-gray-200' 
+                          : 'bg-yellow-50 text-[#E2AD28] border border-yellow-200'}`}>
+                            {item.type}
+                          </span>
                         </td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={7} className="px-10 py-20 text-center text-gray-400 font-medium">No products found.</td></tr>
+                      <tr><td colSpan={7} className="px-10 py-20 text-center text-gray-400 font-medium">No items in custody found.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -248,7 +308,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* ✅ MODAL POPUP: Add Product */}
+      {/* ✅ MODAL POPUP: Add Product (Feature เดิมคงอยู่) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -267,7 +327,7 @@ export default function AdminPage() {
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase">Brand</label>
                   <select className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#E2AD28] outline-none"
-                    onChange={(e) => setNewProduct({...newProduct, Brand: e.target.value})}>
+                    onChange={(e) => setNewProduct({...newProduct, brandName: e.target.value})}>
                     <option value="Louis Vuitton">Louis Vuitton</option>
                     <option value="Chanel">Chanel</option>
                     <option value="Dior">Dior</option>
