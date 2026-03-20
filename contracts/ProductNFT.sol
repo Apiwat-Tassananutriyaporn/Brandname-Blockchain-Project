@@ -8,47 +8,52 @@ contract ProductNFT is ERC721Enumerable, Ownable {
     // ตัวนับลำดับ Token ID เริ่มต้นที่ 1
     uint256 private _nextTokenId = 1;
     
-    // Mapping สำหรับเก็บความสัมพันธ์: Serial Number (String) -> Token ID (Uint)
+    // Mapping: Serial Number -> Token ID
     mapping(string => uint256) public serialToTokenId;
     
-    // Mapping สำหรับเก็บความสัมพันธ์: Token ID (Uint) -> Serial Number (String)
+    // Mapping: Token ID -> Serial Number (เผื่อใช้ตรวจสอบย้อนกลับ)
     mapping(uint256 => string) public tokenIdToSerial;
 
-    // Event แจ้งเตือนเมื่อมีการ Mint (ให้ Back-end จับไปลง Database ได้)
-    event Minted(uint256 indexed tokenId, address to, string serial);
+    // Event แจ้งเตือนเมื่อมีการลงทะเบียน (ให้ Backend จับไปลง SQL ได้)
+    event Registered(uint256 indexed tokenId, address indexed owner, string serial);
 
     constructor() ERC721("LuxeChain Asset", "LUXE") {}
 
     /**
-     * @dev [สำหรับหน้า Admin]
-     * @param to: ที่อยู่กระเป๋าเจ้าของคนแรก
+     * @dev [หน้า Admin Register]
+     * @param to: Wallet Address ของเจ้าของ (Backend ต้องแปลงจาก Email มาเป็น Address ก่อนส่ง)
      * @param serial: เลข Serial จากสินค้าจริง
-     * ฟังก์ชันนี้จะ "เสก" NFT และผูก Serial เข้ากับ ID ทันที
      */
-    function mint(address to, string memory serial) external onlyOwner returns (uint256) {
-        // เช็คว่า Serial นี้เคย Mint ไปหรือยัง (ห้ามซ้ำ)
+    function regis(address to, string memory serial) external onlyOwner returns (uint256) {
+        // 1. เช็คว่า Serial นี้เคยลงทะเบียนไปหรือยัง (ห้ามซ้ำ)
         require(serialToTokenId[serial] == 0, "Serial already registered");
         
         uint256 tokenId = _nextTokenId;
-        _safeMint(to, tokenId); // สร้าง NFT ให้กับที่อยู่ที่ระบุ
         
-        // บันทึกข้อมูลลง Blockchain
+        // 2. สร้าง NFT และส่งเข้า Wallet ของเจ้าของ (ห้ามส่ง Email เข้ามาในนี้)
+        _safeMint(to, tokenId);
+        
+        // 3. บันทึกความสัมพันธ์ลง Blockchain
         serialToTokenId[serial] = tokenId;
         tokenIdToSerial[tokenId] = serial;
         
-        emit Minted(tokenId, to, serial);
-        _nextTokenId++; // เพิ่มลำดับ ID สำหรับชิ้นต่อไป
+        // 4. พ่น Event ออกไปเพื่อให้ Backend รู้
+        emit Registered(tokenId, to, serial);
+        
+        _nextTokenId++; // ขยับลำดับไปชิ้นถัดไป
         return tokenId;
     }
 
     /**
      * @dev [สำหรับหน้า Verify]
-     * @param serial: เลข Serial ที่ User กรอกในหน้าเว็บ
-     * คืนค่า: Address ของเจ้าของปัจจุบัน (ถ้าคืนค่า 0x0... แสดงว่าของปลอม)
+     * @param serial: เลข Serial ที่กรอกในหน้าเว็บ
+     * คืนค่า: Wallet Address ของเจ้าของปัจจุบัน
      */
     function getOwnerBySerial(string memory serial) external view returns (address) {
         uint256 tokenId = serialToTokenId[serial];
         require(tokenId != 0, "Product not found on Blockchain");
-        return ownerOf(tokenId); // ดึงข้อมูลเจ้าของปัจจุบันจากมาตรฐาน ERC721
+        
+        // คืนค่าที่อยู่กระเป๋าคนที่เป็นเจ้าของ NFT ชิ้นนี้ ณ ปัจจุบัน
+        return ownerOf(tokenId); 
     }
 }
