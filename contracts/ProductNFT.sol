@@ -8,52 +8,64 @@ contract ProductNFT is ERC721Enumerable, Ownable {
     // ตัวนับลำดับ Token ID เริ่มต้นที่ 1
     uint256 private _nextTokenId = 1;
     
-    // Mapping: Serial Number -> Token ID
+    // Mapping สำหรับเก็บความสัมพันธ์: Serial Number -> Token ID
     mapping(string => uint256) public serialToTokenId;
     
-    // Mapping: Token ID -> Serial Number (เผื่อใช้ตรวจสอบย้อนกลับ)
+    // Mapping สำหรับเก็บความสัมพันธ์: Token ID -> Serial Number
     mapping(uint256 => string) public tokenIdToSerial;
 
-    // Event แจ้งเตือนเมื่อมีการลงทะเบียน (ให้ Backend จับไปลง SQL ได้)
-    event Registered(uint256 indexed tokenId, address indexed owner, string serial);
+    // Event สำหรับให้ Backend ดักฟัง
+    event Minted(uint256 indexed tokenId, address to, string serial);
+    event Registered(uint256 indexed tokenId, address indexed from, address indexed to, string serial);
 
     constructor() ERC721("LuxeChain Asset", "LUXE") {}
 
     /**
-     * @dev [หน้า Admin Register]
-     * @param to: Wallet Address ของเจ้าของ (Backend ต้องแปลงจาก Email มาเป็น Address ก่อนส่ง)
+     * @dev [หน้า Add Product] - Admin เสกของเข้าสต็อกตัวเอง
+     * @param to: ที่อยู่กระเป๋า Admin (ผู้ถือครองคนแรก)
      * @param serial: เลข Serial จากสินค้าจริง
      */
-    function regis(address to, string memory serial) external onlyOwner returns (uint256) {
-        // 1. เช็คว่า Serial นี้เคยลงทะเบียนไปหรือยัง (ห้ามซ้ำ)
+    function mint(address to, string memory serial) external onlyOwner returns (uint256) {
         require(serialToTokenId[serial] == 0, "Serial already registered");
         
         uint256 tokenId = _nextTokenId;
+        _safeMint(to, tokenId); 
         
-        // 2. สร้าง NFT และส่งเข้า Wallet ของเจ้าของ (ห้ามส่ง Email เข้ามาในนี้)
-        _safeMint(to, tokenId);
-        
-        // 3. บันทึกความสัมพันธ์ลง Blockchain
         serialToTokenId[serial] = tokenId;
         tokenIdToSerial[tokenId] = serial;
         
-        // 4. พ่น Event ออกไปเพื่อให้ Backend รู้
-        emit Registered(tokenId, to, serial);
-        
-        _nextTokenId++; // ขยับลำดับไปชิ้นถัดไป
+        emit Minted(tokenId, to, serial);
+        _nextTokenId++; 
         return tokenId;
     }
 
     /**
-     * @dev [สำหรับหน้า Verify]
-     * @param serial: เลข Serial ที่กรอกในหน้าเว็บ
-     * คืนค่า: Wallet Address ของเจ้าของปัจจุบัน
+     * @dev [หน้า Register] - เปลี่ยนชื่อเจ้าของจาก Admin ไปเป็น User (ตาม Email)
+     * @param to: Wallet Address ของ User (ที่ Backend แปลงมาจาก Email)
+     * @param serial: เลข Serial ของสินค้าที่ Admin เคย Mint ไว้แล้ว
+     */
+    function regis(address to, string memory serial) public onlyOwner {
+        // 1. ดึง Token ID จาก Serial ที่มีอยู่ในระบบ
+        uint256 tokenId = serialToTokenId[serial];
+        require(tokenId != 0, "Product not found. Please add product first.");
+        
+        // 2. ตรวจสอบว่าปัจจุบัน Admin ยังเป็นเจ้าของอยู่ (เพื่อทำการโอน)
+        address adminOwner = ownerOf(tokenId);
+        require(adminOwner == owner(), "Product already registered to someone else");
+        require(to != address(0), "Invalid receiver address");
+
+        // 3. ทำการโอนสิทธิ์จาก Admin ไปให้ User
+        _safeTransfer(adminOwner, to, tokenId, "");
+
+        emit Registered(tokenId, adminOwner, to, serial);
+    }
+
+    /**
+     * @dev [หน้า Verify] - ตรวจสอบเจ้าของปัจจุบัน
      */
     function getOwnerBySerial(string memory serial) external view returns (address) {
         uint256 tokenId = serialToTokenId[serial];
         require(tokenId != 0, "Product not found on Blockchain");
-        
-        // คืนค่าที่อยู่กระเป๋าคนที่เป็นเจ้าของ NFT ชิ้นนี้ ณ ปัจจุบัน
         return ownerOf(tokenId); 
     }
 }
