@@ -22,7 +22,7 @@ contract MarketplaceEscrow is ReentrancyGuard {
     }
 
     /**
-     * @dev [Step 1: Listing] สำหรับหน้า My Asset
+     * @dev [Step 1: Listing] สำหรับหน้า My Collection 
      * @notice ต้องเรียก approve ในหน้าบ้านก่อนสั่งรันฟังก์ชันนี้
      */
     function listProduct(uint256 tokenId, uint256 price) external {
