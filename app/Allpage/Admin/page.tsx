@@ -78,34 +78,69 @@ export default function AdminPage() {
   }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/product/register', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          email: registerData.email,
-          serial: registerData.serialNumber
-        })
-      });
+      e.preventDefault();
+      try {
+          setIsLoading(true);
+          const token = localStorage.getItem('token');
 
-      const result = await response.json();
+          // 1. ดึง Wallet Address จาก Backend
+          const walletRes = await fetch('http://localhost:8000/api/product/getwallet', {
+              method: 'POST', // แนะนำให้ใช้ POST สำหรับการส่ง body
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ email: registerData.email })
+          });
 
-      if (response.ok) {
-        alert(`Success: ${result.message}`);
-        setRegisterData({ email: '', serialNumber: '' });
-        fetchProducts();
-      } else {
-        alert(`Error: ${result.message || "Registration failed"}`);
+          const walletResult = await walletRes.json();
+          if (!walletRes.ok) throw new Error(walletResult.message);
+
+          const targetWallet = walletResult.data; // นี่คือ Address ของ User
+          console.log("Target Wallet:", targetWallet);
+
+          // 2. เรียก Smart Contract (Blockchain)
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const CONTRACT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26"; 
+          
+          const ABI = [
+              "function regis(address to, string memory serial) public",
+              "event Registered(uint256 indexed tokenId, address indexed from, address indexed to, string serial)"
+          ];
+
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+          
+          // เรียกฟังก์ชัน regis ใน Solidity 
+          const tx = await contract.regis(targetWallet, registerData.serialNumber);
+          alert("กำลังบันทึกข้อมูลลง Blockchain...");
+          await tx.wait();
+
+          // 3. อัปเดต Database (เปลี่ยน Status เป็น With Owner)
+          const dbRes = await fetch('http://localhost:8000/api/product/register', {
+              method: 'PATCH',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                  email: registerData.email,
+                  serial: registerData.serialNumber
+              })
+          });
+
+          if (dbRes.ok) {
+              alert("ลงทะเบียนและโอนกรรมสิทธิ์สำเร็จ!");
+              setRegisterData({ email: '', serialNumber: '' });
+              fetchProducts();
+          }
+
+      } catch (error: any) {
+          console.error("Register Error:", error);
+          alert(`ข้อผิดพลาด: ${error.message}`);
+      } finally {
+          setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Register Error:", error);
-      alert("Failed to connect to server");
-    }
   };
 
     const handleAddProduct = async (e: React.FormEvent) => {
@@ -123,7 +158,7 @@ export default function AdminPage() {
             const signer = await provider.getSigner();
             
             // ใส่ Contract Address ที่คุณได้จากตอน Deploy ใน Ganache
-            const CONTRACT_ADDRESS = "0x13f0b470A6C745bD62092411C23912506Fde8610"; 
+            const CONTRACT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26"; 
             const ABI = [
               "function mint(address to, string memory serial) external returns (uint256)",
               "event Minted(uint256 indexed tokenId, address to, string serial)"
