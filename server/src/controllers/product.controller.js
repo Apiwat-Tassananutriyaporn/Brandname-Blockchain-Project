@@ -5,26 +5,46 @@ const jwt = require("jsonwebtoken");
 
 
 exports.registerProductToUser = async (req, res) => {
-    const{serial, email} = req.body
+    const { serial, email } = req.body;
+    console.log("Registering serial:", serial, "to email:", email);
     
-    try{
-        console.log("email: ", email)
-         const [user] = await req.db.query("SELECT * FROM user WHERE email = ?", email)
-         console.log("user: ", user)
-        if(!user){
-            throw new ("email is not found")
+    try {
+        // 1. ตรวจสอบ User (ต้องดึง index [0] ออกมา)
+        const [users] = await req.db.query("SELECT id FROM user WHERE email = ?", [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: "ไม่พบผู้ใช้งานที่ใช้อีเมลนี้" });
         }
-        console.log("user: ", user[0])
-        const result = await req.db.query("UPDATE product SET status = 'With Owner', current_owner_id  = ? WHERE serial = ?", [user[0].id, serial])
-        res.json({
-            message: "resgister product succesful!"
-        })
-    }catch(error){
-        console.log("errorMessage: ",error.message)
+        const targetUserId = users[0].id;
 
+        // 2. ดึงข้อมูลสินค้า "ก่อน" อัปเดต เพื่อเก็บประวัติเจ้าของเดิม
+        const [products] = await req.db.query("SELECT id, token_id, current_owner_id FROM product WHERE serial = ?", [serial]);
+        if (products.length === 0) {
+            return res.status(404).json({ message: "ไม่พบสินค้าในระบบ" });
+        }
+        const productData = products[0];
+
+        // 3. บันทึกประวัติการเปลี่ยนมือ (Ownership History)
+        // from_user_id คือเจ้าของเก่า, to_user_id คือ targetUserId (คนใหม่)
+        await req.db.query(
+            "INSERT INTO ownership_history (product_id, token_id, from_user_id, to_user_id) VALUES (?, ?, ?, ?)", 
+            [productData.id, productData.token_id, productData.current_owner_id, targetUserId]
+        );
+
+        // 4. อัปเดตเจ้าของปัจจุบันในตาราง product
+        await req.db.query(
+            "UPDATE product SET status = 'With Owner', current_owner_id = ? WHERE serial = ?", 
+            [targetUserId, serial]
+        );
+
+        console.log("Database updated successfully for serial:", serial);
+        res.json({ message: "Register product successful!" });
+
+    } catch (error) {
+        console.error("Backend Register Error:", error);
         res.status(500).json({
-            message: "something wrong",
-        })
+            message: "Something went wrong in Backend",
+            error: error.message
+        });
     }
 };
 
@@ -313,25 +333,47 @@ exports.buyAsset = async (req, res) => {
 
 
 exports.verify = async (req, res) => {
-    
-    const serial = req.params.serial 
+    const { serial } = req.params;
 
-    try{
-        const product = await req.db.query("SELECT * FROM product WHERE serial = ? ", serial)
+    try {
+        // 1. ดึงข้อมูลสินค้า (ใช้ Destructuring [rows] เพื่อเอาแถวข้อมูลออกมา)
+        const [products] = await req.db.query("SELECT * FROM product WHERE serial = ?", [serial]);
 
+        // ตรวจสอบว่ามีสินค้าชิ้นนี้จริงไหม
+        if (products.length === 0) {
+            return res.status(404).json({ message: "ไม่พบข้อมูลสินค้าชิ้นนี้ในระบบ" });
+        }
+
+        const productData = products[0];
+
+        // 2. ดึงประวัติการครอบครอง พร้อม Join ชื่อ-นามสกุล
+        const [history] = await req.db.query(
+            `SELECT 
+                oh.id,
+                u.firstname, 
+                u.lastname, 
+                oh.transfer_date 
+             FROM ownership_history oh 
+             JOIN user u ON oh.to_user_id = u.id 
+             WHERE oh.product_id = ? 
+             ORDER BY oh.transfer_date ASC`, 
+            [productData.id] // ส่ง id เข้าไปเป็น parameter
+        );
+
+        // 3. ส่งข้อมูลกลับไปที่หน้าบ้าน
         res.json({
             message: "SELECT complete!",
-            data: product[0]
-        })
+            ProductData: productData,
+            OwnershipHistory: history // ประวัติการโอนทั้งหมด
+        });
 
-    }catch(error){
-        console.log("can not get product")
+    } catch (error) {
+        console.error("Verify Error:", error);
         res.status(500).json({
-            message: "something wrong",
-            error
-        })
+            message: "เกิดข้อผิดพลาดในการดึงข้อมูล",
+            error: error.message
+        });
     }
-
 };
 
 
