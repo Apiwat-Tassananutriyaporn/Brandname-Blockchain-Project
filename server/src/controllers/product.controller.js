@@ -120,28 +120,6 @@ exports.getAllProducts = async (req, res) => {
 
 };
 
-exports.OwnerShipHistory = async (req, res) => {
-    const id = req.params.id
-
-    try{
-        const user_token = req.user
-      
-        
-       
-        res.json({
-            message: "INSERT OwnerShipHistory complete!"
-        })
-
-    }catch(error){
-        console.log("can INSERT ownership history")
-        res.status(403).json({
-            message: "authentication fail",
-            error
-        })
-    }
-
-};
-
 
 exports.getMyCollection = async (req, res) => {
 
@@ -299,36 +277,37 @@ exports.trading = async (req, res) => {
 };
 
 exports.buyAsset = async (req, res) => {
+    const { id } = req.params; // ใช้ Destructuring เพื่อความปลอดภัย
+    console.log("buyAsset is called");
+    try {
+        const user_token = req.user;
+        const [rows] = await req.db.query("SELECT * FROM product WHERE id = ?", [id]);
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "ไม่พบสินค้าในระบบ" });
+        }
 
-    const id = req.params.id
-    try{
-        const user_token = req.user
-        console.log("user_token: ", user_token) // ใช้ user_token.idได้
+        const productData = rows[0];
+        const token_id = productData.token_id;
+        const from_id = productData.current_owner_id;
 
-        const product = await req.db.query("SELECT * FROM product WHERE id = ? AND type='Asset'", id)
-        // id ของเจ้าของเก่า
-        const oldOwnerId = product[0][0].current_owner_id
-        // wallet address ของเจ้าของเก่า --- oldOwnerWallet[0][0].wallet_address
-        const oldOwnerWallet = await req.db.query("SELECT wallet_address FROM user WHERE id = ?", oldOwnerId)
-        // wallet address ของเจ้าของใหม่ --- newOwnerWallet[0][0].wallet_address
-        const newOwnerWallet = await req.db.query("SELECT wallet_address FROM user WHERE id = ?", user_token.id)
-        console.log("oldOwnerId: ", oldOwnerId)
-        console.log("oldOwnerWallet: ", oldOwnerWallet[0][0].wallet_address)
-        console.log("newOwnerWallet: ", newOwnerWallet[0][0].wallet_address)
+        // บันทึกประวัติ
+        await req.db.query(
+            "INSERT INTO ownership_history (product_id, token_id, from_user_id, to_user_id) VALUES (?, ?, ?, ?)", 
+            [id, token_id, from_id, user_token.id]
+        );
 
-        const result = await req.db.query("UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ? AND type='Asset'", [user_token.id, id])
+        // อัปเดตเจ้าของ (เช็คเรื่อง type ให้ดี ถ้าในรูปเป็น Real ต้องแก้ให้ตรง)
+        await req.db.query(
+            "UPDATE product SET current_owner_id = ?, status = 'With Owner' WHERE id = ?", 
+            [user_token.id, id]
+        );
+        console.log("successfully updated product ownership in database");
+        res.json({ message: "Buy Product complete!" });
 
-        res.json({
-            message: "Buy Product complete!",
-            result
-        })
-
-    }catch(error){
-        console.log("can not get asset")
-        res.status(403).json({
-            message: "authentication fail",
-            error
-        })
+    } catch (error) {
+        console.error("Backend Error:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
 
