@@ -47,11 +47,17 @@ exports.login = async (req, res) =>{
             console.log("userID: ", user.id) 
             console.log("userRole: ", user.role) 
 
-            const token =  jwt.sign({id: user.id, role: user.role},  process.env.JWT_SECRET, { expiresIn: '1h'})
+            const token =  jwt.sign({
+                id: user.id, 
+                role: user.role, 
+                },  process.env.JWT_SECRET, { expiresIn: '1h'})
 
             res.json({
-                message : "Login succesful!",
-                token
+                message : "Login1111 successful!",
+                token: token,
+                role: user.role,
+                firstname: user.firstname, 
+                email: user.email
             })
         }else{
             return res.status(401).json({
