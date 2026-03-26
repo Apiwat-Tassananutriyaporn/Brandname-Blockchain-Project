@@ -94,6 +94,8 @@ export default function EscrowPage() {
       const tx = await contract.swap(tokenId); // [cite: 29, 30]
       await tx.wait();
 
+      alert("test")
+
       const token = localStorage.getItem('token');
       await fetch(`http://localhost:8000/api/product/${id}/buycollection`, {
         method: 'PATCH',
