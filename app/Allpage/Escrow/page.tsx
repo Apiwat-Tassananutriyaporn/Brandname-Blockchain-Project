@@ -1,6 +1,9 @@
 "use client";
 import React, { useState } from 'react';
 import { Lock, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
+import {ethers} from 'ethers';
+import { useSearchParams } from 'next/dist/client/components/navigation';
+import { useRouter } from 'next/navigation';
 
 const steps = [
   { id: 1, name: 'Listing', icon: Lock },
@@ -9,11 +12,99 @@ const steps = [
   { id: 4, name: 'Atomic Swap', icon: Sparkles },
 ];
 
+const ESCROW_ABI = [
+  "function buy(uint256 tokenId) external payable",
+  "function confirm(uint256 tokenId) external",
+  "function swap(uint256 tokenId) external",
+  "function listings(uint256) public view returns (address seller, address buyer, uint256 price, bool confirmed, bool active)"
+];
+
+const NFT_ABI = [
+  "function serialToTokenId(string memory serial) public view returns (uint256)"
+];
+
+const ESCROW_ADDRESS = "0xFe96a382831b84992643886791c8eD872fD0AA8F";
+const NFT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26";
+
 export default function EscrowPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+  const serial = searchParams.get('serial');
+  const priceInEth = searchParams.get('price'); // ราคาจาก URL
   const [currentStep, setCurrentStep] = useState(1);
+  const [ethPrice, setEthPrice] = useState(priceInEth || "0");
+
+  console.log("Serial from URL:", serial);
 
   const nextStep = () => {
     if (currentStep < steps.length) setCurrentStep(currentStep + 1);
+  };
+
+  // ฟังก์ชันช่วยดึง TokenId จาก Serial
+  const getTokenId = async (signer: any) => {
+    const nftContract = new ethers.Contract(NFT_ADDRESS, NFT_ABI, signer);
+    const id = await nftContract.serialToTokenId(serial);
+    if (id === BigInt(0)) throw new Error("ไม่พบสินค้าบน Blockchain");
+    return id;
+  };
+  console.log("tokenId:", getTokenId);
+
+  //  Step 2: Payment (เรียกฟังก์ชัน buy)
+  const handlePayment = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tokenId = await getTokenId(signer);
+      const contract = new ethers.Contract(ESCROW_ADDRESS, ESCROW_ABI, signer);
+
+      // เรียกฟังก์ชัน buy พร้อมส่งเงิน [cite: 25, 26, 27]
+      const tx = await contract.buy(tokenId, { 
+        value: ethers.parseEther(priceInEth || "0") 
+      });
+      await tx.wait();
+      nextStep();
+    } catch (error: any) { alert(error.message); }
+  };
+
+  //  Step 3: Verification (เรียกฟังก์ชัน confirm)
+  const handleConfirm = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tokenId = await getTokenId(signer);
+      const contract = new ethers.Contract(ESCROW_ADDRESS, ESCROW_ABI, signer);
+
+      const tx = await contract.confirm(tokenId); // 
+      await tx.wait();
+      nextStep();
+    } catch (error: any) { alert(error.message); }
+  };
+
+  //  Step 4: Atomic Swap (เรียกฟังก์ชัน swap)
+  const handleSwap = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tokenId = await getTokenId(signer);
+      const contract = new ethers.Contract(ESCROW_ADDRESS, ESCROW_ABI, signer);
+
+      const tx = await contract.swap(tokenId); // [cite: 29, 30]
+      await tx.wait();
+
+      const token = localStorage.getItem('token');
+      await fetch(`http://localhost:8000/api/product/${id}/buycollection`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      alert("โอนกรรมสิทธิ์และชำระเงินสำเร็จ!");
+    } catch (error: any) { alert(error.message); }
+
+    router.push('/Allpage/MyCollection');
   };
 
   return (
@@ -95,10 +186,10 @@ export default function EscrowPage() {
               <h2 className="text-3xl font-bold text-[#1A1A1A]">Payment</h2>
               <p className="text-xl text-gray-600">Funds secured in safe contract</p>
               <div className="py-4">
-                <span className="text-4xl font-bold text-[#D4A744]">15,200.00 USDT</span>
+                <span className="text-4xl font-bold text-[#D4A744]">{ethPrice}.00 ETH</span>
                 <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">Secured in Safe Smart Contract</p>
               </div>
-              <button onClick={nextStep} className="mt-4 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
+              <button onClick={handlePayment} className="mt-4 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
                 Continue
               </button>
             </div>
@@ -113,7 +204,7 @@ export default function EscrowPage() {
               <h2 className="text-3xl font-bold text-[#1A1A1A]">Verification</h2>
               <p className="text-xl text-gray-600">Buyer confirms digital identity</p>
               <p className="text-gray-400 italic">Please verify that the digital identity matches the physical asset</p>
-              <button onClick={nextStep} className="mt-8 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
+              <button onClick={handleConfirm} className="mt-8 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
                 Confirm Received
               </button>
             </div>
@@ -128,7 +219,7 @@ export default function EscrowPage() {
               <h2 className="text-3xl font-bold text-[#1A1A1A]">Atomic Swap</h2>
               <p className="text-xl text-gray-600">Simultaneous exchange completed</p>
               <p className="text-gray-400">Executing atomic swap — funds and NFT exchange simultaneously</p>
-              <button onClick={() => alert("Swap Successful!")} className="mt-8 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
+              <button onClick={handleSwap} className="mt-8 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
                 Execute Swap
               </button>
             </div>
