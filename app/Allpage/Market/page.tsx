@@ -76,7 +76,9 @@ export default function MarketPage() {
 
     const query = new URLSearchParams({
       model: selectedProduct.model,
-      serial: selectedProduct.serial
+      id: selectedProduct.id,
+      serial: selectedProduct.serial,
+      price: selectedProduct.price,
     }).toString();
 
     setIsModalOpen(false);
@@ -131,7 +133,7 @@ export default function MarketPage() {
                 </div>
 
                 <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                  <p className="text-xl font-bold text-black">฿{Number(item.price).toLocaleString()}</p>
+                  <p className="text-xl font-bold text-black">{Number(item.price).toLocaleString()} ETH</p>
                   
                   {userRole === 'user' && (
                     <button 
