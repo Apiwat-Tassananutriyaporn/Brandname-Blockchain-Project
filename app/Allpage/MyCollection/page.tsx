@@ -84,7 +84,7 @@ export default function CollectionPage() {
         // -----------------
 
       const nftContract = new ethers.Contract(NFT_ADDRESS, [
-        "function serialToTokenId(string memory) public view returns (uint256)",
+        "function serialToTokenId(string memory serial) public view returns (uint256)",
         "function approve(address to, uint256 tokenId) public"
       ], signer);
 
@@ -189,7 +189,7 @@ export default function CollectionPage() {
                 </div>
 
                 <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 mt-2 md:mt-0">
-                  <p className="text-xl font-bold text-black">฿{Number(item.price).toLocaleString()}</p>
+                  <p className="text-xl font-bold text-black">{Number(item.price).toLocaleString()} ETH</p>
                   <button 
                     onClick={() => {
                       setSelectedProduct(item);
