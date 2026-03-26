@@ -313,7 +313,7 @@ export default function AdminPage() {
                       <th className="px-8 py-6">Serial</th>
                       <th className="px-8 py-6">Model</th>
                       <th className="px-8 py-6">Color</th>
-                      <th className="px-8 py-6 ">Price (THB)</th>
+                      <th className="px-8 py-6 ">Price (ETH)</th>
                       <th className="px-8 py-6">Type</th>
                     </tr>
                   </thead>
@@ -394,8 +394,8 @@ export default function AdminPage() {
                     onChange={(e) => setNewProduct({...newProduct, color: e.target.value})}/>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Price (THB)</label>
-                  <input required type="number" placeholder="95000" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#E2AD28] outline-none"
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Price (ETH)</label>
+                  <input required type="number" step="0.01" placeholder="95000" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#E2AD28] outline-none"
                     onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}/>
                 </div>
               </div>
