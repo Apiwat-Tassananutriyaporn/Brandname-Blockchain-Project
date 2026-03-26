@@ -78,7 +78,8 @@ export default function MarketPage() {
       model: selectedProduct.model,
       id: selectedProduct.id,
       serial: selectedProduct.serial,
-      price: selectedProduct.price,
+      price: selectedProduct.price
+      
     }).toString();
 
     setIsModalOpen(false);
