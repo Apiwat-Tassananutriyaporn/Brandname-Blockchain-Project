@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./ProductNFT.sol";
 
 contract MarketplaceEscrow is ReentrancyGuard {
     // โครงสร้างข้อมูลสำหรับรายการประกาศขาย
@@ -14,7 +15,7 @@ contract MarketplaceEscrow is ReentrancyGuard {
         bool active;       // สถานะรายการ (True = กำลังขาย, False = จบงานแล้ว)
     }
 
-    IERC721 public nftContract; // อ้างอิงถึงสัญญา ProductNFT
+    ProductNFT public nftContract;
     mapping(uint256 => Listing) public listings;
 
     constructor(address _nftAddress) {
@@ -30,7 +31,7 @@ contract MarketplaceEscrow is ReentrancyGuard {
         nftContract.transferFrom(msg.sender, address(this), tokenId);
         
         // สร้างรายการขายใหม่
-        listings[tokenId] = Listing(msg.sender, address(0), price, false, true);
+        listings[tokenId] = Listing(msg.sender, address(0), price, false, true); [cite: 25]
     }
 
     /**
@@ -77,13 +78,13 @@ contract MarketplaceEscrow is ReentrancyGuard {
      */
     function tradingBuy(uint256 tokenId) external payable nonReentrant {
         Listing storage list = listings[tokenId];
-        require(list.active && msg.value == list.price, "Invalid trade");
+        require(list.active , "Not for sale");
 
-        list.active = false;
-        
-        // โอนเงินให้คนขายทันที
+        list.active = false; // ปิดรายการขาย
+
+        // โอนเงิน ETH ให้คนขาย
         payable(list.seller).transfer(list.price);
-        // โอน NFT ให้คนซื้อทันที (เจ้าของเปลี่ยนทันที!)
-        nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
+        // โอน NFT ให้คนซื้อ (จบการเปลี่ยนเจ้าของบน Blockchain)
+        nftContract.safeTransferFrom(address(this), list.buyer, tokenId);
     }
 }
