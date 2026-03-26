@@ -30,8 +30,10 @@ export default function EscrowPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
+  const owner_id = searchParams.get('owner_id');
   const serial = searchParams.get('serial');
   const priceInEth = searchParams.get('price'); // ราคาจาก URL
+  const token_id = searchParams.get('token_id'); // token_id จาก URL
   const [currentStep, setCurrentStep] = useState(1);
   const [ethPrice, setEthPrice] = useState(priceInEth || "0");
 
@@ -186,7 +188,7 @@ export default function EscrowPage() {
               <h2 className="text-3xl font-bold text-[#1A1A1A]">Payment</h2>
               <p className="text-xl text-gray-600">Funds secured in safe contract</p>
               <div className="py-4">
-                <span className="text-4xl font-bold text-[#D4A744]">{ethPrice}.00 ETH</span>
+                <span className="text-4xl font-bold text-[#D4A744]">{ethPrice} ETH</span>
                 <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">Secured in Safe Smart Contract</p>
               </div>
               <button onClick={handlePayment} className="mt-4 px-12 py-3 bg-[#D4A744] hover:bg-[#B38C36] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#D4A744]/30">
