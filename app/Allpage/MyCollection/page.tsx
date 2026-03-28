@@ -224,7 +224,7 @@ export default function CollectionPage() {
                 
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                   <span className="text-xs text-gray-400 uppercase font-black">Price</span>
-                  <span className="text-2xl font-black text-black">฿{Number(selectedProduct.price).toLocaleString()}</span>
+                  <span className="text-2xl font-black text-black">{Number(selectedProduct.price).toLocaleString()} ETH</span>
                 </div>
               </div>
 
