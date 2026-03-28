@@ -11,6 +11,7 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [userRole, setUserRole] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -22,6 +23,11 @@ export default function MarketPage() {
     const role = localStorage.getItem('role');
     if (role) {
       setUserRole(role.toLowerCase());
+      const id = localStorage.getItem('id');
+      if (id) 
+        setCurrentUserId(Number(id));
+      if (!id) 
+        alert("กรุณา Login ก่อนเข้าถึงหน้า Market");
     }
 
     const fetchMarketData = async () => {
@@ -55,6 +61,7 @@ export default function MarketPage() {
   }, []);
 
   useEffect(() => {
+    
     if (activeTab === 'All') {
       setFilteredProducts(products);
     } else {
@@ -137,12 +144,24 @@ export default function MarketPage() {
                   <p className="text-xl font-bold text-black">{Number(item.price).toLocaleString()} ETH</p>
                   
                   {userRole === 'user' && (
-                    <button 
-                      onClick={() => openConfirmModal(item)}
-                      className="bg-[#D4A017] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all active:scale-95"
-                    >
-                      Buy Now
-                    </button>
+                    <>
+                      {/* ถ้าเราเป็นเจ้าของเอง ให้แสดงปุ่ม Owner และกดไม่ได้ */}
+                      {item.current_owner_id === currentUserId ? (
+                        <button 
+                          disabled
+                          className="bg-gray-100 text-gray-400 px-6 py-3 rounded-xl text-sm font-bold cursor-not-allowed border border-gray-200"
+                        >
+                          Owner
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => openConfirmModal(item)}
+                          className="bg-[#D4A017] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-sm"
+                        >
+                          Buy Now
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -171,7 +190,7 @@ export default function MarketPage() {
         
         <div className="flex justify-between items-center pt-4 border-t border-gray-200">
           <span className="text-xs text-gray-400 uppercase font-black">Total Price</span>
-          <span className="text-2xl font-black text-black">฿{Number(selectedProduct.price).toLocaleString()}</span>
+          <span className="text-2xl font-black text-black">{Number(selectedProduct.price).toLocaleString()} ETH</span>
         </div>
       </div>
 

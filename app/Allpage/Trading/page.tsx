@@ -12,6 +12,7 @@ export default function MarketPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isBuying, setIsBuying] = useState(false); 
   const [userRole, setUserRole] = useState(null); // เพิ่ม state สำหรับเก็บ role
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const brandsMap = { 0: "All", 1: "Chanel", 2: "Louis Vuitton", 3: "Dior", 4: "Gucci" };
 
@@ -50,8 +51,15 @@ export default function MarketPage() {
   // ดึง Role และข้อมูลเริ่มต้น
   useEffect(() => {
     const role = localStorage.getItem('role');
+    const id = localStorage.getItem('id');
+    console.log("user_id", id);
+    if (id) 
+      setCurrentUserId(id);
+    if (!role || !id) 
+      alert("กรุณา Login ก่อนเข้าถึงหน้า Trading");
     if (role) {
       setUserRole(role.toLowerCase());
+      
     }
     fetchTradingData();
   }, []);
@@ -215,7 +223,7 @@ export default function MarketPage() {
 
                         <td className="px-8 py-6">
                           <div className="text-sm font-medium text-gray-700 truncate max-w-[150px]">
-                            {item.owner_email ? item.owner_email : `ID: ${item.current_owner_id}`}
+                            {item.owner_email ? item.owner_email : `ID: ${item.current_owner_id}`} 
                           </div>
                         </td>
 
@@ -233,11 +241,22 @@ export default function MarketPage() {
                         {/* ตรวจสอบเงื่อนไข userRole === 'user' เพื่อแสดงปุ่ม */}
                         {userRole === 'user' && (
                           <td className="px-8 py-6 text-right">
-                            <button 
-                              onClick={() => setSelectedItem(item)}
-                              className="bg-[#D4A017] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-sm">
-                              Buy Asset
-                            </button>
+                            {/* เช็คว่าเป็นของตัวเองหรือไม่ */}
+                            {item.current_owner_id === currentUserId ? (
+                              <button 
+                                disabled
+                                className="bg-gray-200 text-gray-400 px-6 py-3 rounded-xl text-sm font-bold cursor-not-allowed shadow-none"
+                              >
+                                Owner
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => setSelectedItem(item)}
+                                className="bg-[#D4A017] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-sm"
+                              >
+                                Buy Asset 
+                              </button>
+                            )}
                           </td>
                         )}
                       </tr>
