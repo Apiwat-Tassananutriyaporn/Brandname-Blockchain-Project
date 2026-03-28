@@ -57,7 +57,8 @@ exports.login = async (req, res) =>{
                 token: token,
                 role: user.role,
                 firstname: user.firstname, 
-                email: user.email
+                email: user.email,
+                id : user.id
             })
         }else{
             return res.status(401).json({

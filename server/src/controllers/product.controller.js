@@ -41,7 +41,7 @@ exports.registerProductToUser = async (req, res) => {
 
     } catch (error) {
         console.error("Backend Register Error:", error);
-        res.status(500).json({
+        res.status(500).json({  
             message: "Something went wrong in Backend",
             error: error.message
         });
@@ -284,7 +284,7 @@ exports.trading = async (req, res) => {
         const query = ""
             
         ;
-        const [products] = await req.db.query("SELECT p.*, u.email AS owner_email FROM product p LEFT JOIN user u ON p.current_owner_id = u.id WHERE p.status IN ('Sold', 'In Custody') AND p.type = 'Asset' ");
+        const [products] = await req.db.query("SELECT p.*, u.email AS owner_email, u.id AS owner_id FROM product p LEFT JOIN user u ON p.current_owner_id = u.id WHERE p.status IN ('Sold', 'In Custody') AND p.type = 'Asset' ");
         res.json({
             message: "SELECT complete!",
             data: products
@@ -351,7 +351,9 @@ exports.verify = async (req, res) => {
             `SELECT 
                 oh.id,
                 u.firstname, 
-                u.lastname, 
+                u.lastname,
+                u.email,
+                u.role, 
                 oh.transfer_date 
              FROM ownership_history oh 
              JOIN user u ON oh.to_user_id = u.id 
