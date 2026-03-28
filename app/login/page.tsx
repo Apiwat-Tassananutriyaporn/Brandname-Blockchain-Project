@@ -46,6 +46,7 @@ export default function LoginPage() {
         localStorage.setItem('role', data.role);
         localStorage.setItem('firstname', data.firstname || '');
         localStorage.setItem('email', data.email || '');
+        localStorage.setItem('id', data.id || '');
 
         window.dispatchEvent(new Event('storage'));
 
