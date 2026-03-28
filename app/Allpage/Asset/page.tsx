@@ -67,8 +67,9 @@ export default function MyAssetPage() {
       const network = await provider.getNetwork();
       console.log("Current Chain ID:", network.chainId);
       //เชื่อมต่อกับ Smart Contracts
-      const NFT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26"; //
-      const ESCROW_ADDRESS = "0xFe96a382831b84992643886791c8eD872fD0AA8F"; //
+      const NFT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS;
+      const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
+      
       //----------------------
       const code = await provider.getCode(NFT_ADDRESS);
         if (code === "0x") {
@@ -257,7 +258,7 @@ export default function MyAssetPage() {
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                   <span className="text-xs text-gray-400 uppercase font-black">Listing Price</span>
                   <span className="text-2xl font-black text-black">
-                    ${Number(selectedItem.price).toLocaleString()} <span className="text-sm font-medium text-gray-500">USDT</span>
+                    {Number(selectedItem.price).toLocaleString()}<span className="text-sm font-medium text-gray-500"> ETH</span>
                   </span>
                 </div>
               </div>
