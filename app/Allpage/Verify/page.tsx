@@ -135,7 +135,7 @@ export default function VerifyPage() {
                     <div>
                       <p className="text-[10px] text-gray-400 uppercase font-bold">Price</p>
                       <p className="text-sm font-bold text-gray-900">
-                        {result.price ? `${Number(result.price).toLocaleString()} THB` : "N/A"}
+                        {result.price ? `${Number(result.price).toLocaleString()} ETH` : "N/A"}
                       </p>
                     </div>
                   </div>

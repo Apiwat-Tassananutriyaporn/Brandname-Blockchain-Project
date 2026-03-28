@@ -102,7 +102,7 @@ export default function AdminPage() {
           // 2. เรียก Smart Contract (Blockchain)
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
-          const CONTRACT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26"; 
+          const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS;
           
           const ABI = [
               "function regis(address to, string memory serial) public",
@@ -158,7 +158,8 @@ export default function AdminPage() {
             const signer = await provider.getSigner();
             
             // ใส่ Contract Address ที่คุณได้จากตอน Deploy ใน Ganache
-            const CONTRACT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26"; 
+            const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS;
+             
             const ABI = [
               "function mint(address to, string memory serial) external returns (uint256)",
               "event Minted(uint256 indexed tokenId, address to, string serial)"

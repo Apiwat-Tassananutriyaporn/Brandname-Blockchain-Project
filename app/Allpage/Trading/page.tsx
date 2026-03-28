@@ -54,7 +54,7 @@ export default function MarketPage() {
     const id = localStorage.getItem('id');
     console.log("user_id", id);
     if (id) 
-      setCurrentUserId(id);
+      setCurrentUserId(Number(id));
     if (!role || !id) 
       alert("กรุณา Login ก่อนเข้าถึงหน้า Trading");
     if (role) {
@@ -85,7 +85,7 @@ export default function MarketPage() {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     
-    const ESCROW_ADDRESS = "0xFe96a382831b84992643886791c8eD872fD0AA8F";
+    const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
     const escrowContract = new ethers.Contract(ESCROW_ADDRESS, [
       "function listings(uint256) public view returns (address seller, address buyer, uint256 price, bool confirmed, bool active)",
       "function tradingBuy(uint256 tokenId) external payable"
@@ -247,7 +247,7 @@ export default function MarketPage() {
                                 disabled
                                 className="bg-gray-200 text-gray-400 px-6 py-3 rounded-xl text-sm font-bold cursor-not-allowed shadow-none"
                               >
-                                Owner
+                                Owner 
                               </button>
                             ) : (
                               <button 

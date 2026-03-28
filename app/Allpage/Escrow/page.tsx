@@ -23,8 +23,8 @@ const NFT_ABI = [
   "function serialToTokenId(string memory serial) public view returns (uint256)"
 ];
 
-const ESCROW_ADDRESS = "0xFe96a382831b84992643886791c8eD872fD0AA8F";
-const NFT_ADDRESS = "0x8a868F9dF8162c13731e38589a3d8Cd7cBBc6E26";
+const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_ADDRESS;
+const NFT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS;
 
 export default function EscrowPage() {
   const router = useRouter();
